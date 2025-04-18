@@ -548,7 +548,7 @@ class WritingAgent:
         """
         topic = topic_analysis["topic"]
         depth = topic_analysis["knowledge_depth"]
-        tone = topic_analysis["tone"]
+        tone = topic_analysis["requested_tone"]
         subtopics = topic_analysis["subtopics"]
         
         self.logger.info(f"Generating full blog for topic: '{topic}'")
@@ -631,6 +631,6 @@ class WritingAgent:
             "word_count": word_count,
             "reading_time": reading_time,
             "topic": topic_analysis["topic"],
-            "depth": topic_analysis["depth"],
-            "tone": topic_analysis["tone_guidance"]
+            "depth": topic_analysis["knowledge_depth"],
+            "tone": topic_analysis["requested_tone"]
         }

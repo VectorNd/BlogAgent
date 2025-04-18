@@ -3,6 +3,7 @@ import json
 import logging
 from typing import Dict, Any
 from datetime import datetime
+import re
 
 class ExecutionAgent:
     def __init__(self, output_dir: str = "./output"):
@@ -21,6 +22,50 @@ class ExecutionAgent:
         os.makedirs(output_dir, exist_ok=True)
         self.logger.info(f"Initialized ExecutionAgent with output directory: {output_dir}")
         
+    def _generate_safe_filename(self, metadata: Dict[str, Any]) -> str:
+        """Generate a safe filename from SEO metadata."""
+        try:
+            # First try to use the slug if it exists
+            if 'slug' in metadata and metadata['slug']:
+                filename = metadata['slug']
+            else:
+                # Fallback to title if no slug
+                filename = metadata['title']
+            
+            # Convert to lowercase
+            filename = filename.lower()
+            
+            # Replace spaces with hyphens
+            filename = filename.replace(" ", "-")
+            
+            # Remove special characters but keep hyphens
+            filename = re.sub(r'[^a-z0-9-]', '', filename)
+            
+            # Remove multiple consecutive hyphens
+            filename = re.sub(r'-+', '-', filename)
+            
+            # Remove leading/trailing hyphens
+            filename = filename.strip('-')
+            
+            # Ensure filename is not too long
+            if len(filename) > 50:
+                # Try to truncate at a word boundary
+                truncated = filename[:47]
+                last_hyphen = truncated.rfind('-')
+                if last_hyphen > 0:
+                    filename = truncated[:last_hyphen]
+                else:
+                    filename = truncated
+                filename += "..."
+            
+            self.logger.info(f"Generated filename: {filename}")
+            return filename
+            
+        except Exception as e:
+            self.logger.error(f"Error generating filename: {str(e)}")
+            # Fallback to a safe default
+            return f"blog-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            
     async def export_markdown(self, content: str, filename: str) -> str:
         """Export blog content as markdown file."""
         self.logger.info(f"Exporting markdown content to {filename}.md")
@@ -56,28 +101,13 @@ class ExecutionAgent:
         """Display CLI summary of completed process."""
         self.logger.info("Generating process summary")
         
-        # # Create summary template
-        # summary_template = ChatPromptTemplate.from_messages([
-        #     ("system", "You are a helpful assistant that generates beautiful CLI summaries."),
-        #     ("user", """Generate a beautiful CLI summary for a blog generation process with the following details:
-        #     - Blog Title: {title}
-        #     - Topic: {topic}
-        #     - Reading Time: {reading_time} minutes
-        #     - Keywords: {keywords}
-        #     - Generated Files:
-        #       - Markdown: {md_path}
-        #       - Metadata: {json_path}
-        #     """)
-        # ])
-        
-        # Format the summary
         summary = f"""
         {'='*50}
         ✅ Blog Generated: {metadata['title']}
         📝 Topic: {topic}
         ⏱️ Reading Time: {metadata['reading_time']} minutes
         🔑 Keywords: {', '.join(metadata['keywords'])}
-        🔗 Suggested URL: {metadata['slug']}
+        🔗 URL Slug: {metadata.get('slug', 'N/A')}
         📂 Files created:
         - {md_path}
         - {json_path}
@@ -92,8 +122,8 @@ class ExecutionAgent:
         self.logger.info("Starting export process")
         
         try:
-            # Generate filenames based on slug
-            filename = metadata['slug']
+            # Generate safe filename from metadata
+            filename = self._generate_safe_filename(metadata)
             
             # Export content and metadata
             md_path = await self.export_markdown(content, filename)

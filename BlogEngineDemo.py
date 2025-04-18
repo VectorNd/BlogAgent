@@ -28,15 +28,15 @@ async def main():
             {
                 "topic": "Python Web Development",
                 "tone": "professional"
-            },
-            {
-                "topic": "Machine Learning Basics",
-                "tone": "educational"
-            },
-            {
-                "topic": "Cloud Computing Trends",
-                "tone": "informative"
             }
+            # {
+            #     "topic": "Machine Learning Basics",
+            #     "tone": "educational"
+            # },
+            # {
+            #     "topic": "Cloud Computing Trends",
+            #     "tone": "informative"
+            # }
         ]
         
         for test_case in test_cases:
@@ -51,21 +51,11 @@ async def main():
                     tone=test_case['tone']
                 )
                 
+                print("Yees")
+                
                 # Print results
                 print("\n=== Blog Generation Results ===")
-                print(f"Title: {result['metadata']['title']}")
-                print(f"Reading Time: {result['metadata']['reading_time']} minutes")
-                print(f"Keywords: {', '.join(result['metadata']['keywords'])}")
-                print(f"Evaluation Scores: {result['evaluation']}")
-                print("\nGenerated Files:")
-                print(f"- Markdown: {result['files']['markdown']}")
-                print(f"- Metadata: {result['files']['json']}")
-                
-                # Print a preview of the content
-                print("\n=== Content Preview ===")
-                preview = result['content'].split('\n')[:10]
-                print('\n'.join(preview))
-                print("...")
+                print(result)
                 
             except Exception as e:
                 print(f"\n❌ Error generating blog for topic '{test_case['topic']}':")

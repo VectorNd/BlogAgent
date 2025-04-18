@@ -98,7 +98,7 @@ async def main():
     load_dotenv()
     
     # Verify required API keys
-    required_keys = ["GOOGLE_API_KEY", "NEWSDATA_API_KEY"]
+    required_keys = ["GROQ_API_KEY"]
     missing_keys = [key for key in required_keys if not os.getenv(key)]
     if missing_keys:
         print(f"Error: Missing required API keys: {', '.join(missing_keys)}")

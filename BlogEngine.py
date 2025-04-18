@@ -21,6 +21,7 @@ from Agents.ContextAgent import ContextAgent
 from Agents.WritingAgent import WritingAgent
 from Agents.SEOAgent import SEOAgent
 from Agents.ExecutionAgent import ExecutionAgent
+from Agents.AgentCoordinator import AgentCoordinator
 from llm_evaluator import BlogEvaluator
 
 load_dotenv()
@@ -33,13 +34,12 @@ class BlogEngine:
     It handles the workflow from topic analysis to final export.
     """
     
-    def __init__(self):
+    def __init__(self, output_dir: str = "./output"):
         """
         Initialize the BlogEngine with necessary API keys.
         
         Args:
-            api_keys: Dictionary containing API keys for various services
-                     Required keys: 'gemini', 'newsdata'
+            output_dir: Directory to save generated files
         """
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -70,10 +70,19 @@ class BlogEngine:
             self.context_agent = ContextAgent(os.getenv("NEWSDATA_API_KEY"), os.getenv("GROQ_API_KEY"))
             self.writing_agent = WritingAgent(os.getenv("GROQ_API_KEY"))
             self.seo_agent = SEOAgent(os.getenv("GROQ_API_KEY"))
-            self.execution_agent = ExecutionAgent()
+            self.execution_agent = ExecutionAgent(output_dir=output_dir)
 
             # Initialize blog evaluator
             self.blog_evaluator = BlogEvaluator()
+            
+            # Initialize agent coordinator
+            self.coordinator = AgentCoordinator(
+                self.topic_agent,
+                self.context_agent,
+                self.writing_agent,
+                self.seo_agent,
+                self.execution_agent
+            )
             
             self.logger.info("BlogEngine initialized successfully")
             
@@ -93,60 +102,23 @@ class BlogEngine:
             Dictionary containing:
             - content: The generated blog content
             - metadata: SEO metadata
+            - quality_metrics: Content quality scores
+            - research_context: Research data and insights
             - files: Paths to exported files
         """
         try:
             self.logger.info(f"Starting blog generation for topic: {topic}")
             
-            # Step 1: Analyze topic
-            self.logger.info("Analyzing topic...")
-            topic_analysis = await self.topic_agent.analyze_topic(topic, tone)
+            # Use coordinator to generate blog
+            result = await self.coordinator.generate_blog(topic, tone)
             
-            # Step 2: Conduct research
-            self.logger.info("Gathering context...")
-            research_context = await self.context_agent.gather_context(
-                topic, topic_analysis["subtopics"]
-            )
-            
-            # Step 3: Generate content
-            self.logger.info("Generating blog content...")
-            blog_content = await self.writing_agent.generate_full_blog(
-                topic_analysis, research_context
-            )
-
-            # Step 4: Evaluate blog content
-            self.logger.info("Evaluating blog content...")
-            evaluation_scores = self.blog_evaluator.evaluate_blog(blog_content)
-            
-            # Step 5: Optimize for SEO
-            self.logger.info("Optimizing for SEO...")
-            seo_metadata = await self.seo_agent.optimize_content(
-                topic, blog_content, research_context["keywords"]
-            )
-            
-            # Step 6: Export and summarize
-            self.logger.info("Exporting results...")
-            filename_base = seo_metadata["slug"]
-            md_path = await self.execution_agent.export_markdown(blog_content, filename_base)
-            json_path = await self.execution_agent.export_metadata(seo_metadata, filename_base)
-
-
-            # eval_path = await self.execution_agent.export_evaluation(evaluation_scores, filename_base)
-            
-            # Step 7: Summarize process
-            await self.execution_agent.summarize_process(topic, seo_metadata, md_path, json_path)
+            # Additional evaluation if needed
+            evaluation_scores = self.blog_evaluator.evaluate_blog(result["content"])
+            result["evaluation"] = evaluation_scores
             
             self.logger.info("Blog generation completed successfully")
             
-            return {
-                "content": blog_content,
-                "metadata": seo_metadata,
-                "evaluation": evaluation_scores,
-                "files": {
-                    "markdown": md_path,
-                    "json": json_path
-                }
-            }
+            return result
             
         except Exception as e:
             self.logger.error(f"Error generating blog: {str(e)}")

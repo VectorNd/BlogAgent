@@ -58,6 +58,7 @@ def main():
                 with st.spinner("Generating your blog post..."):
                     # Run async function
                     result = asyncio.run(generate_blog_async(topic, tone))
+                    print(result)
                     st.session_state.generated_blog = result
     
     if st.session_state.generated_blog:
@@ -73,14 +74,14 @@ def main():
                 st.download_button(
                     "Download Markdown",
                     blog['content'],
-                    file_name=f"{blog['slug']}.md",
+                    file_name=f"{blog['files']['markdown_path']}",
                     mime="text/markdown"
                 )
             with col2:
                 st.download_button(
                     "Download Metadata",
                     str(blog['metadata']),
-                    file_name=f"{blog['slug']}_meta.json",
+                    file_name=f"{blog['files']['metadata_path']}",
                     mime="application/json"
                 )
         
@@ -89,12 +90,12 @@ def main():
             
             # Basic info
             st.markdown("#### Basic Information")
-            st.markdown(f"**Title:** {blog['title']}")
-            st.markdown(f"**Reading Time:** {blog['reading_time']} minutes")
+            st.markdown(f"**Title:** {blog['metadata']['title']}")
+            st.markdown(f"**Reading Time:** {blog['metadata']['reading_time']} minutes")
             
             # Keywords
             st.markdown("#### Keywords")
-            st.markdown(", ".join(blog['keywords']))
+            st.markdown(", ".join(blog['metadata']['keywords']))
             
             # Readability scores
             st.markdown("#### Readability Scores")
@@ -106,8 +107,8 @@ def main():
             
             # SEO metadata
             st.markdown("#### SEO Metadata")
-            st.markdown(f"**Slug:** {blog['slug']}")
-            st.markdown(f"**Meta Description:** {blog['meta_description']}")
+            st.markdown(f"**Slug:** {blog['metadata']['slug']}")
+            st.markdown(f"**Meta Description:** {blog['metadata']['meta_description']}")
 
 if __name__ == "__main__":
     main() 
